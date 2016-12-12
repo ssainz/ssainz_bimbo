@@ -1,0 +1,82 @@
+
+#First number is the range of client
+#second number is how many random numbers for clients to generate
+#third number is how many total rows.
+data = getSampleData(100000, 10000, 10000);
+
+
+% systematically try client, then product then canal, then agencia, then ruta.
+y = cell2mat(data(:,8));
+cliente_data = createDummyVarSet(data, {'Cliente'},{'Semana'});
+producto_data = createDummyVarSet(data, {'Producto'},{'Semana'});
+agencia_data = createDummyVarSet(data, {'Agencia'},{'Semana'});
+canal_data = createDummyVarSet(data, {'Canal'},{'Semana'});
+ruta_data = createDummyVarSet(data, {'Ruta'},{'Semana'});
+try_data = cliente_data;
+cliente_producto_data = createDummyVarSet(data, {'Cliente','Producto'},{'Semana'});
+cliente_producto_agencia_data = createDummyVarSet(data, {'Cliente','Producto', 'Agencia'},{'Semana'});
+cliente_producto_agencia_canal_data = createDummyVarSet(data, {'Cliente','Producto', 'Agencia', 'Canal'},{'Semana'});
+%Measure the linear or intersections or quadratic models.
+data_mat = cell2mat(data);
+data_table = table(data_mat(:,1),data_mat(:,2),data_mat(:,3),data_mat(:,4),data_mat(:,5),data_mat(:,6),data_mat(:,7),data_mat(:,8), 'VariableNames', {'id', 'semana', 'agencia','canal', 'ruta','cliente','producto','venta'});
+
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'cliente'}, 'CategoricalVars', {'cliente'});
+RSE : 143
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto'}, 'CategoricalVars', {'producto'});
+RSE: 280
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'canal'}, 'CategoricalVars', {'canal'});
+RSE: 213
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'ruta'}, 'CategoricalVars', {'ruta'});
+RSE: 140
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'agencia'}, 'CategoricalVars', {'agencia'});
+RSE: 147
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'semana'});
+RSE: 331
+
+
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'ruta', 'cliente'}, 'CategoricalVars', {'ruta', 'cliente'});
+RSE: 140
+
+mdl = fitlm(data_table, 'venta ~ ruta + cliente + producto', 'ResponseVar', 'venta', 'PredictorVars', {'ruta', 'cliente', 'producto'}, 'CategoricalVars', {'ruta', 'cliente', 'producto'});
+RSE: 90
+
+
+%Measure the linear or intersections or quadratic models.
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto','ruta'}, 'CategoricalVars', {'ruta','producto'});
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto','ruta', 'cliente'}, 'CategoricalVars', {'ruta','producto','cliente'});
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto','ruta', 'agencia'}, 'CategoricalVars', {'ruta','producto','agencia'});
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto','ruta', 'canal'}, 'CategoricalVars', {'ruta','producto','canal'});
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto','ruta', 'cliente', 'semana'}, 'CategoricalVars', {'ruta','producto','cliente'});
+mdl = fitlm(data_table, 'linear', 'ResponseVar', 'venta', 'PredictorVars', {'producto','ruta','cliente','semana','agencia','canal'}, 'CategoricalVars', {'ruta','producto','cliente','agencia','canal'});
+
+
+%LASSO
+% data is coming from the db directly
+data = getSampleData(100000, 10000, 1000);
+X = createDummyVarSet(data, {'cliente', 'ruta','canal','agencia','producto'}, {'semana'});
+y = cell2mat(data(:,8));
+
+
+%Linear and RMSLE
+%get the data 
+[rse, models, data_matrix, rmsle_mat,test_matrix] = getLinearModelRSE();
+%then apply multiple combinations
+[adv_rse, adv_models, adv_rmsle_mat] = getAdvancedLinearModelRSE(data_matrix{1}, 'quadratic');
+[rse , rmsle_mat] = avg_getAdvancedLinearModelRSE(5);
+
+%Apply robust and able to test new set: 
+[data_matrix, rmsle_mat, rmsle_mat_test, test_matrix] = getLinearModelRSE_Resilient;
+[rmsle_mat, rmsle_mat_test] = avg_getLinearModelRSE_Resilent(10);
+
+%Neural networks:
+[rmsle_mat, rmsle_mat_test] =  evaluateNN(5);
+[rmsle_mat, rmsle_mat_test, net_mat, tr_mat] = evaluateNN_Q(10)
+
+%SVM with linear
+[rmsle_mat, models, data_matrix, test_matrix] = getSVMModelRSE()
+[rmsle_mat, rmsle_test_mat, models, data_matrix, test_matrix] = getSVMModelRSE_Q()
+
+%Ensamble
+[rmsle_mat, rmsle_test_mat, models] =  getEnsambleModelRMSLE
+[rmsle_mat, rmsle_test_mat, models] =  getEnsambleModelRMSLE_adv
+
